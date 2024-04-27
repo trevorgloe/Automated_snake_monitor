@@ -10,3 +10,14 @@ The basic architecture for the system is a set of 433MHz wireless controlled out
 - [Arduino Uno](https://www.amazon.com/dp/B008GRTSV6?ref=ppx_yo2ov_dt_b_product_details&th=1)
 - [HiLetgo 433MHz RF Wireless Transmitter and Receiver Module for Arduino](https://www.amazon.com/dp/B01DKC2EY4?psc=1&ref=ppx_yo2ov_dt_b_product_details)
 - Etekcity Zap Remote Outlet Switch Model ZAP 5LX-S (This one I could not find at any stores. They may not make it any more. But I was able to find a set on ebay.)
+
+### Etekcity Zap remote codes
+| Outlet | On | Off |
+| ---------- | ------------- | ------------- |
+| 1 | 5248307 | 5248316 |
+| 2 | 5248451 | 5248460 |
+| 3 | 5248771 | 5248780 |
+| 4 | 5250307 | 5250316 |
+| 5 | 5256451 | 5256460 |
+
+All codes featured a pulse length of between 185 and 188. Typically a message was picked up several times, each with slightly different pulse lengths. 
