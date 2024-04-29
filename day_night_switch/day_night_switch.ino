@@ -69,14 +69,19 @@ void setup() {
   alarmH12 = false;
   alarmPM = false;    
   
-  rtc.turnOffAlarm(1);
-  rtc.setA1Time(
-       datetimenow.day, datetimenow.hour, datetimenow.minute+1, datetimenow.second,
-       alarmBits, alarmDayIsDay, alarmH12, alarmPM);
-  // enable Alarm 1 interrupts
-  rtc.turnOnAlarm(1);
-  // clear Alarm 1 flag
-  rtc.checkIfAlarm(1);
+//  rtc.turnOffAlarm(1);
+//  rtc.setA1Time(
+//       datetimenow.day, datetimenow.hour, datetimenow.minute+1, datetimenow.second,
+//       alarmBits, alarmDayIsDay, alarmH12, alarmPM);
+//  // enable Alarm 1 interrupts
+//  rtc.turnOnAlarm(1);
+//  // clear Alarm 1 flag
+//  rtc.checkIfAlarm(1);
+   // Setup alarm one to fire every second
+    rtc.turnOffAlarm(1);
+    rtc.setA1Time(26, 21, 57, 35, alarmBits, false, false, false);
+    rtc.turnOnAlarm(1);
+    rtc.checkIfAlarm(1);
 
   // Prevent Alarm 2 altogether by assigning a 
   // nonsensical alarm minute value that cannot match the clock time,
@@ -85,27 +90,28 @@ void setup() {
   alarmBits = 0b01100000; // Alarm 2 when minutes match, i.e., never
     
   // Upload the parameters to prevent Alarm 2 entirely
-  rtc.setA2Time(
-        datetimenow.day, datetimenow.hour, 0xFF,
-       alarmBits, alarmDayIsDay, alarmH12, alarmPM);
-  // disable Alarm 2 interrupt
-  rtc.turnOffAlarm(2);
-  // clear Alarm 2 flag
-  rtc.checkIfAlarm(2);
+//  rtc.setA2Time(
+//        datetimenow.day, datetimenow.hour, 0xFF,
+//       alarmBits, alarmDayIsDay, alarmH12, alarmPM);
+//  // disable Alarm 2 interrupt
+//  rtc.turnOffAlarm(2);
+//  // clear Alarm 2 flag
+//  rtc.checkIfAlarm(2);
 
   // NOTE: both of the alarm flags must be clear
   // to enable output of a FALLING interrupt
 
   // attach clock interrupt
-  pinMode(CLINT, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(CLINT), isr_TickTock, FALLING);
+//  pinMode(CLINT, INPUT_PULLUP);
+//  attachInterrupt(digitalPinToInterrupt(CLINT), isr_TickTock, FALLING);
 }
 
 
 void loop() {
-  if (tick) {
-    tick = 0;
-    Serial.print("Interupt triggered");
+  if (rtc.checkIfAlarm(1, false)) {
+    Serial.print("Alarm triggered");
+    // clear alarm state
+    rtc.checkIfAlarm(1, true);
     
   }
   Serial.print(rtc.getYear(), DEC);
@@ -122,9 +128,9 @@ void loop() {
   delay(100);
 
 }
-
-void isr_TickTock() {
-    // interrupt signals to loop
-    tick = 1;
-    return;
-}
+//
+//void isr_TickTock() {
+//    // interrupt signals to loop
+//    tick = 1;
+//    return;
+//}
