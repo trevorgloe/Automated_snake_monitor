@@ -8,16 +8,25 @@
 #include <time.h>
 #include <LiquidCrystal_I2C.h>
 
+#include <RCSwitch.h>
+
 //#include <DateTimeStrings.h>
 //#include <RTClib.h>
 
 #define CLINT 2
 volatile bool tick = 0;
 
+#define LED_PIN 10
+
+#define RC_PIN_TX A0
+
 byte alarmBits;
 bool alarmDayIsDay;
 bool alarmH12;
 bool alarmPM;
+
+bool LED_state;
+bool day;
 
 DS3231 rtc;
 bool century = false;
@@ -34,6 +43,30 @@ struct mydatetime {
 };
 mydatetime datetimenow;
 
+// Code for Etekcity Zap outlets
+unsigned long codes[10] = 
+  {5248307, 5248316, // outlet 1
+  5248451, 5248460,  // outlet 2
+  5248771, 5248780,  // outlet 3
+  5250307, 5250316,  // outlet 4
+  5256451, 5256460};
+
+// enum to help index 
+enum code_idx{
+  out1on,
+  out1off,
+  out2on,
+  out2off,
+  out3on,
+  out3off,
+  out4on,
+  out4off,
+  out5on,
+  out5off
+};
+
+RCSwitch sendSwitch = RCSwitch();
+
 //initialize the liquid crystal library
 //the first parameter is  the I2C address
 //the second parameter is how many rows are on your screen
@@ -48,10 +81,10 @@ void setup() {
   // set the current date and time
   datetimenow.year = 24;
   datetimenow.month = 4;
-  datetimenow.day = 26;
-  datetimenow.hour = 21;
-  datetimenow.minute = 57;
-  datetimenow.second = 0;
+  datetimenow.day = 30;
+  datetimenow.hour = 20;
+  datetimenow.minute = 9;
+  datetimenow.second = 45;
 
   rtc.setYear(datetimenow.year);
   rtc.setMonth(datetimenow.month);
@@ -82,7 +115,7 @@ void setup() {
 //  rtc.checkIfAlarm(1);
    // Setup alarm one to fire every second
     rtc.turnOffAlarm(1);
-    rtc.setA1Time(10, 21, 57, 10, alarmBits, false, false, false);
+    rtc.setA1Time(10, 20, 10, 0, alarmBits, false, false, false);
     rtc.turnOnAlarm(1);
     rtc.checkIfAlarm(1);
 
@@ -110,6 +143,15 @@ void setup() {
 //  set_sleep_mode(SLEEP_MODE_PWR_DOWN);
 //  sleep_enable();
 //  sleep_cpu();
+  pinMode(LED_PIN, OUTPUT);
+  LED_state = true;
+
+  day = true;
+
+  // set up transmit
+  sendSwitch.enableTransmit(RC_PIN_TX);
+  sendSwitch.setProtocol(1);
+  sendSwitch.setPulseLength(188);
 }
 
 
@@ -131,7 +173,9 @@ void loop() {
   Serial.print(":");
   int curr_sec = rtc.getSecond();
   Serial.println(curr_sec, DEC);
-  delay(3000);
+  LED_state = !LED_state;
+  digitalWrite(LED_PIN, LED_state);
+  delay(20000);
 //  LowPower.deepSleep(2000);
   if (tick==1) {
     Serial.print("Alarm triggered");
@@ -140,7 +184,14 @@ void loop() {
 //    rtc.checkIfAlarm(1, true);
     alarmBits = 0b00001000;
     rtc.turnOffAlarm(1);
-    rtc.setA1Time(curr_day, curr_hour, curr_minute, curr_sec+11, alarmBits, false, false, false);
+    if (day){
+      rtc.setA1Time(10, 20, 10, 0, alarmBits, false, false, false);
+      sendSwitch.send(codes[out4on], 24);
+      Serial.println("Sent 4 ON code");
+    } else {
+      rtc.setA1Time(10, 7, 10, 0, alarmBits, false, false, false);
+    }
+    // rtc.setA1Time(curr_day, curr_hour, curr_minute, curr_sec+11, alarmBits, false, false, false);
     rtc.turnOnAlarm(1);
     rtc.checkIfAlarm(1);
     
