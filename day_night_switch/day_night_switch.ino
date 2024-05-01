@@ -1,3 +1,6 @@
+//#include <ArduinoLowPower.h>
+//#include <avr/sleep.h>
+
 // First test of changing one of the lights on seth's cage
 
 #include <DS3231.h>
@@ -9,7 +12,7 @@
 //#include <RTClib.h>
 
 #define CLINT 2
-volatile bool tick = 1;
+volatile bool tick = 0;
 
 byte alarmBits;
 bool alarmDayIsDay;
@@ -48,7 +51,7 @@ void setup() {
   datetimenow.day = 26;
   datetimenow.hour = 21;
   datetimenow.minute = 57;
-  datetimenow.second = 25;
+  datetimenow.second = 0;
 
   rtc.setYear(datetimenow.year);
   rtc.setMonth(datetimenow.month);
@@ -79,7 +82,7 @@ void setup() {
 //  rtc.checkIfAlarm(1);
    // Setup alarm one to fire every second
     rtc.turnOffAlarm(1);
-    rtc.setA1Time(26, 21, 57, 35, alarmBits, false, false, false);
+    rtc.setA1Time(10, 21, 57, 10, alarmBits, false, false, false);
     rtc.turnOnAlarm(1);
     rtc.checkIfAlarm(1);
 
@@ -102,35 +105,51 @@ void setup() {
   // to enable output of a FALLING interrupt
 
   // attach clock interrupt
-//  pinMode(CLINT, INPUT_PULLUP);
-//  attachInterrupt(digitalPinToInterrupt(CLINT), isr_TickTock, FALLING);
+  pinMode(CLINT, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(CLINT), isr_TickTock, FALLING);
+//  set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+//  sleep_enable();
+//  sleep_cpu();
 }
 
 
 void loop() {
-  if (rtc.checkIfAlarm(1, false)) {
+  int curr_year = rtc.getYear();
+  Serial.print(curr_year, DEC);
+  Serial.print("-");
+  int curr_month = rtc.getMonth(century);
+  Serial.print(curr_month, DEC);
+  Serial.print("-");
+  int curr_day = rtc.getDate();
+  Serial.print(curr_day, DEC);
+  Serial.print(" ");
+  int curr_hour = rtc.getHour(h12Flag, pmFlag);
+  Serial.print(curr_hour, DEC); //24-hr
+  Serial.print(":");
+  int curr_minute = rtc.getMinute();
+  Serial.print(curr_minute, DEC);
+  Serial.print(":");
+  int curr_sec = rtc.getSecond();
+  Serial.println(curr_sec, DEC);
+  delay(3000);
+//  LowPower.deepSleep(2000);
+  if (tick==1) {
     Serial.print("Alarm triggered");
     // clear alarm state
-    rtc.checkIfAlarm(1, true);
+    tick = 0;
+//    rtc.checkIfAlarm(1, true);
+    alarmBits = 0b00001000;
+    rtc.turnOffAlarm(1);
+    rtc.setA1Time(curr_day, curr_hour, curr_minute, curr_sec+11, alarmBits, false, false, false);
+    rtc.turnOnAlarm(1);
+    rtc.checkIfAlarm(1);
     
   }
-  Serial.print(rtc.getYear(), DEC);
-  Serial.print("-");
-  Serial.print(rtc.getMonth(century), DEC);
-  Serial.print("-");
-  Serial.print(rtc.getDate(), DEC);
-  Serial.print(" ");
-  Serial.print(rtc.getHour(h12Flag, pmFlag), DEC); //24-hr
-  Serial.print(":");
-  Serial.print(rtc.getMinute(), DEC);
-  Serial.print(":");
-  Serial.println(rtc.getSecond(), DEC);
-  delay(100);
 
 }
 //
-//void isr_TickTock() {
-//    // interrupt signals to loop
-//    tick = 1;
-//    return;
-//}
+void isr_TickTock() {
+    // interrupt signals to loop
+    tick = 1;
+    return;
+}
