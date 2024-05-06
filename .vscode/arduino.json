@@ -1,0 +1,6 @@
+{
+    "board": "arduino:avr:uno",
+    "sketch": "day_night_switch/day_night_switch.ino",
+    "programmer": "arduinoisp",
+    "port": "/dev/ttyACM0"
+}

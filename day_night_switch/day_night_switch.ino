@@ -64,6 +64,7 @@ enum code_idx{
   out5on,
   out5off
 };
+// day light is switch 4, night light is switch 5
 
 RCSwitch sendSwitch = RCSwitch();
 
@@ -73,17 +74,32 @@ RCSwitch sendSwitch = RCSwitch();
 //the  third parameter is how many columns are on your screen
 //LiquidCrystal_I2C lcd(0x27,  16, 4);
 
+//initialize the liquid crystal library
+//the first parameter is  the I2C address
+//the second parameter is how many rows are on your screen
+//the  third parameter is how many columns are on your screen
+LiquidCrystal_I2C lcd(0x27,  16, 4);
+
+// flag for a serial port being plugged in
+bool serialport;
+
 void setup() {
-  Serial.begin(9600);
+  if (Serial){
+    Serial.begin(9600);
+    serialport = true;
+  } else {
+    serialport = false;
+  }
+  
 
   Wire.begin();
 
   // set the current date and time
   datetimenow.year = 24;
-  datetimenow.month = 4;
-  datetimenow.day = 30;
+  datetimenow.month = 5;
+  datetimenow.day = 5;
   datetimenow.hour = 20;
-  datetimenow.minute = 9;
+  datetimenow.minute = 8;
   datetimenow.second = 45;
 
   rtc.setYear(datetimenow.year);
@@ -93,10 +109,14 @@ void setup() {
   rtc.setMinute(datetimenow.minute);
   rtc.setSecond(datetimenow.second);
 
-//  //initialize lcd screen
-//  lcd.init();
-//  // turn on the backlight
-//  lcd.backlight();
+ //initialize lcd screen
+  lcd.init();
+ // turn on the backlight
+  lcd.backlight();
+  lcd.setCursor(0,0);
+  // tell the screen to write “hello, from” on the top  row
+  lcd.print("Starting Program :)");
+
 
   // set alarm 1
 //  alarmBits = 0b00001111; // Alarm 1 every second
@@ -113,7 +133,6 @@ void setup() {
 //  rtc.turnOnAlarm(1);
 //  // clear Alarm 1 flag
 //  rtc.checkIfAlarm(1);
-   // Setup alarm one to fire every second
     rtc.turnOffAlarm(1);
     rtc.setA1Time(10, 20, 10, 0, alarmBits, false, false, false);
     rtc.turnOnAlarm(1);
@@ -152,49 +171,133 @@ void setup() {
   sendSwitch.enableTransmit(RC_PIN_TX);
   sendSwitch.setProtocol(1);
   sendSwitch.setPulseLength(188);
+
+  // turn off both switchs to start
+  sendSwitch.send(codes[out4off], 24);
+  sendSwitch.send(codes[out5off], 24);
 }
 
 
 void loop() {
+  delay(30000);
+  // check for serial port
+  if (Serial && !serialport){
+    Serial.begin(9600);
+    serialport = true;
+    Serial.print("Started serial port");
+  }
+
+  lcd.backlight();
   int curr_year = rtc.getYear();
-  Serial.print(curr_year, DEC);
-  Serial.print("-");
   int curr_month = rtc.getMonth(century);
-  Serial.print(curr_month, DEC);
-  Serial.print("-");
   int curr_day = rtc.getDate();
-  Serial.print(curr_day, DEC);
-  Serial.print(" ");
   int curr_hour = rtc.getHour(h12Flag, pmFlag);
-  Serial.print(curr_hour, DEC); //24-hr
-  Serial.print(":");
   int curr_minute = rtc.getMinute();
-  Serial.print(curr_minute, DEC);
-  Serial.print(":");
   int curr_sec = rtc.getSecond();
-  Serial.println(curr_sec, DEC);
+  if (serialport) {
+    Serial.print(curr_year, DEC);
+    Serial.print("-");
+    
+    Serial.print(curr_month, DEC);
+    Serial.print("-");
+    
+    Serial.print(curr_day, DEC);
+    Serial.print(" ");
+    
+    Serial.print(curr_hour, DEC); //24-hr
+    Serial.print(":");
+    
+    Serial.print(curr_minute, DEC);
+    Serial.print(":");
+    
+    Serial.println(curr_sec, DEC);
+  }
+  
   LED_state = !LED_state;
   digitalWrite(LED_PIN, LED_state);
-  delay(20000);
+   // print stuff onto LCD display
+  lcd.setCursor(0,0);
+  // tell the screen to write “hello, from” on the top  row
+  // lcd.print("Year:");
+  lcd.print(curr_year);
+  lcd.print("-");
+  lcd.print(curr_month);
+  lcd.print("-");
+  lcd.print(curr_day);
+  lcd.print(" ");
+  lcd.print(curr_hour);
+  lcd.print("-");
+  lcd.print(curr_minute);
+  lcd.print("-");
+  lcd.print(curr_sec);
+  lcd.setCursor(0,1);
+  // lcd.print(rtc.getDate());
+  // lcd.print(" Hour:");
+  // lcd.print(rtc.getHour(h12Flag, pmFlag));
+  // lcd.setCursor(0,2);
+  // lcd.print("Minute:");
+  // lcd.print(rtc.getMinute());
+  // lcd.print(" Second:");
+  // lcd.print(rtc.getSecond());
+  lcd.print("Day: ");
+  if (day){
+    lcd.print("true ");
+  } else {
+    lcd.print("false");
+  }
+  lcd.print("Ser: ");
+  if (serialport){
+    lcd.print("true");
+  } else {
+    lcd.print("false");
+  }
+  delay(5000);
+  lcd.noBacklight();
 //  LowPower.deepSleep(2000);
+  if (day) {
+    sendSwitch.send(codes[out5on], 24);
+    
+    sendSwitch.send(codes[out4off], 24);
+    if (serialport) {
+      Serial.println("Sent 5 ON code");
+      Serial.println("Sent 4 OFF code");
+    }
+    
+  } else {
+    sendSwitch.send(codes[out4on], 24);
+    sendSwitch.send(codes[out5off], 24);
+    if (serialport){
+      Serial.println("Sent 4 ON code");
+      Serial.println("Sent 5 OFF code");
+    }
+  }
   if (tick==1) {
     Serial.print("Alarm triggered");
     // clear alarm state
-    tick = 0;
+    
 //    rtc.checkIfAlarm(1, true);
     alarmBits = 0b00001000;
     rtc.turnOffAlarm(1);
     if (day){
       rtc.setA1Time(10, 20, 10, 0, alarmBits, false, false, false);
-      sendSwitch.send(codes[out4on], 24);
-      Serial.println("Sent 4 ON code");
+      // sendSwitch.send(codes[out5on], 24);
+      // Serial.println("Sent 5 ON code");
+      // sendSwitch.send(codes[out4off], 24);
+      // Serial.println("Sent 4 OFF code");
+      day = false;
     } else {
       rtc.setA1Time(10, 7, 10, 0, alarmBits, false, false, false);
+      // sendSwitch.send(codes[out4on], 24);
+      // Serial.println("Sent 4 ON code");
+      // sendSwitch.send(codes[out5off], 24);
+      // Serial.println("Sent 5 OFF code");
+      day = true;
     }
     // rtc.setA1Time(curr_day, curr_hour, curr_minute, curr_sec+11, alarmBits, false, false, false);
     rtc.turnOnAlarm(1);
     rtc.checkIfAlarm(1);
     
+    tick = 0; // do this at the end in case the turning off and on causes any interferance
   }
 
 }
