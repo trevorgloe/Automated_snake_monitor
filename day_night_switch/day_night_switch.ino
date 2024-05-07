@@ -97,10 +97,10 @@ void setup() {
   // set the current date and time
   datetimenow.year = 24;
   datetimenow.month = 5;
-  datetimenow.day = 5;
-  datetimenow.hour = 20;
-  datetimenow.minute = 8;
-  datetimenow.second = 45;
+  datetimenow.day = 6;
+  datetimenow.hour = 22;
+  datetimenow.minute = 3;
+  datetimenow.second = 40;
 
   rtc.setYear(datetimenow.year);
   rtc.setMonth(datetimenow.month);
@@ -134,7 +134,7 @@ void setup() {
 //  // clear Alarm 1 flag
 //  rtc.checkIfAlarm(1);
     rtc.turnOffAlarm(1);
-    rtc.setA1Time(10, 20, 10, 0, alarmBits, false, false, false);
+    rtc.setA1Time(10, 7, 10, 0, alarmBits, false, false, false);
     rtc.turnOnAlarm(1);
     rtc.checkIfAlarm(1);
 
@@ -165,7 +165,7 @@ void setup() {
   pinMode(LED_PIN, OUTPUT);
   LED_state = true;
 
-  day = true;
+  day = false;
 
   // set up transmit
   sendSwitch.enableTransmit(RC_PIN_TX);
@@ -187,7 +187,9 @@ void loop() {
     Serial.print("Started serial port");
   }
 
-  lcd.backlight();
+  if (day){
+    lcd.backlight();
+  }
   int curr_year = rtc.getYear();
   int curr_month = rtc.getMonth(century);
   int curr_day = rtc.getDate();
@@ -279,14 +281,16 @@ void loop() {
     alarmBits = 0b00001000;
     rtc.turnOffAlarm(1);
     if (day){
-      rtc.setA1Time(10, 20, 10, 0, alarmBits, false, false, false);
+      // it is now night, set the timer for the next morning
+      rtc.setA1Time(10, 7, 10, 0, alarmBits, false, false, false);
       // sendSwitch.send(codes[out5on], 24);
       // Serial.println("Sent 5 ON code");
       // sendSwitch.send(codes[out4off], 24);
       // Serial.println("Sent 4 OFF code");
       day = false;
     } else {
-      rtc.setA1Time(10, 7, 10, 0, alarmBits, false, false, false);
+      // it is now day, set the timer for the evening
+      rtc.setA1Time(10, 20, 10, 0, alarmBits, false, false, false);
       // sendSwitch.send(codes[out4on], 24);
       // Serial.println("Sent 4 ON code");
       // sendSwitch.send(codes[out5off], 24);
