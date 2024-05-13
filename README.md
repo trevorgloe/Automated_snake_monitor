@@ -10,6 +10,10 @@ The basic architecture for the system is a set of 433MHz wireless controlled out
 - [Arduino Uno](https://www.amazon.com/dp/B008GRTSV6?ref=ppx_yo2ov_dt_b_product_details&th=1)
 - [HiLetgo 433MHz RF Wireless Transmitter and Receiver Module for Arduino](https://www.amazon.com/dp/B01DKC2EY4?psc=1&ref=ppx_yo2ov_dt_b_product_details)
 - Etekcity Zap Remote Outlet Switch Model ZAP 5LX-S (This one I could not find at any stores. They may not make it any more. But I was able to find a set on ebay.)
+- [DS3231 AT24C32 IIC Real Time Clock](https://www.amazon.com/dp/B07Q7NZTQS?psc=1&ref=ppx_yo2ov_dt_b_product_details)
+- [Sunfounder 20x4 LCD Module I2C with interface chip](https://www.amazon.com/dp/B0CLGVYPYW?psc=1&ref=ppx_yo2ov_dt_b_product_details)
+- [Wall outlet power supply](https://www.amazon.com/dp/B018OLREG4?psc=1&ref=ppx_yo2ov_dt_b_product_details)
+- [Temperature and humidity sensors](https://www.amazon.com/gp/product/B0CPHQC9SF/ref=ppx_yo_dt_b_asin_title_o00_s00?ie=UTF8&psc=1)
 
 ### Etekcity Zap remote codes
 | Outlet | On | Off |
