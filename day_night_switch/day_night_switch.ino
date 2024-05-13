@@ -43,6 +43,9 @@ struct mydatetime {
 };
 mydatetime datetimenow;
 
+mydatetime day2night = {24, 5, 10, 20, 15, 0};  // when the light should switch from day to night
+mydatetime night2day = {24, 5, 10, 7, 10, 0};   // when the light should switch from night to day
+
 // Code for Etekcity Zap outlets
 unsigned long codes[10] = 
   {5248307, 5248316, // outlet 1
@@ -67,12 +70,6 @@ enum code_idx{
 // day light is switch 4, night light is switch 5
 
 RCSwitch sendSwitch = RCSwitch();
-
-//initialize the liquid crystal library
-//the first parameter is  the I2C address
-//the second parameter is how many rows are on your screen
-//the  third parameter is how many columns are on your screen
-//LiquidCrystal_I2C lcd(0x27,  16, 4);
 
 //initialize the liquid crystal library
 //the first parameter is  the I2C address
@@ -125,36 +122,14 @@ void setup() {
   alarmH12 = false;
   alarmPM = false;    
   
-//  rtc.turnOffAlarm(1);
-//  rtc.setA1Time(
-//       datetimenow.day, datetimenow.hour, datetimenow.minute+1, datetimenow.second,
-//       alarmBits, alarmDayIsDay, alarmH12, alarmPM);
-//  // enable Alarm 1 interrupts
-//  rtc.turnOnAlarm(1);
-//  // clear Alarm 1 flag
 //  rtc.checkIfAlarm(1);
-    rtc.turnOffAlarm(1);
-    rtc.setA1Time(10, 7, 10, 0, alarmBits, false, false, false);
-    rtc.turnOnAlarm(1);
-    rtc.checkIfAlarm(1);
+  rtc.turnOffAlarm(1);
+  rtc.setA1Time(10, 7, 10, 0, alarmBits, false, false, false);
+  rtc.turnOnAlarm(1);
+  rtc.checkIfAlarm(1);
 
-  // Prevent Alarm 2 altogether by assigning a 
-  // nonsensical alarm minute value that cannot match the clock time,
-  // and an alarmBits value to activate "when minutes match".
 //  alarmMinute = 0xFF; // a value that will never match the time
   alarmBits = 0b01100000; // Alarm 2 when minutes match, i.e., never
-    
-  // Upload the parameters to prevent Alarm 2 entirely
-//  rtc.setA2Time(
-//        datetimenow.day, datetimenow.hour, 0xFF,
-//       alarmBits, alarmDayIsDay, alarmH12, alarmPM);
-//  // disable Alarm 2 interrupt
-//  rtc.turnOffAlarm(2);
-//  // clear Alarm 2 flag
-//  rtc.checkIfAlarm(2);
-
-  // NOTE: both of the alarm flags must be clear
-  // to enable output of a FALLING interrupt
 
   // attach clock interrupt
   pinMode(CLINT, INPUT_PULLUP);
@@ -213,6 +188,9 @@ void loop() {
     Serial.print(":");
     
     Serial.println(curr_sec, DEC);
+
+    Serial.print("day: ");
+    Serial.println(day);
   }
   
   LED_state = !LED_state;
@@ -310,4 +288,20 @@ void isr_TickTock() {
     // interrupt signals to loop
     tick = 1;
     return;
+}
+
+void set_clock(mydatetime obj){
+  // function to set the alarm 1 for the RTC
+  alarmBits = 0b00001000; // alarm will trip when date and time match
+  rtc.turnOffAlarm(1);
+
+  // setA1Time(day, hour, minute, second, alarmbits, false, false, false)
+  int day = obj.day;
+  int hour = obj.hour;
+  int min = obj.minute;
+  int sec = obj.second;
+  rtc.setA1Time(day, hour, min, sec, alarmBits, false, false, false);
+
+  rtc.turnOnAlarm(1);
+  rtc.checkIfAlarm(1);
 }
