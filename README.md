@@ -15,6 +15,9 @@ The basic architecture for the system is a set of 433MHz wireless controlled out
 - [Wall outlet power supply](https://www.amazon.com/dp/B018OLREG4?psc=1&ref=ppx_yo2ov_dt_b_product_details)
 - [Temperature and humidity sensors](https://www.amazon.com/gp/product/B0CPHQC9SF/ref=ppx_yo_dt_b_asin_title_o00_s00?ie=UTF8&psc=1)
 
+## Software Documentation
+![state diagram](./doc_files/ASM_state_diagram.drawio?raw=true "state diagram")
+
 ### Etekcity Zap remote codes
 | Outlet | On | Off |
 | ---------- | ------------- | ------------- |
