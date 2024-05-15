@@ -94,10 +94,10 @@ void setup() {
   // set the current date and time
   datetimenow.year = 24;
   datetimenow.month = 5;
-  datetimenow.day = 6;
-  datetimenow.hour = 22;
-  datetimenow.minute = 3;
-  datetimenow.second = 40;
+  datetimenow.day = 14;
+  datetimenow.hour = 18;
+  datetimenow.minute = 52;
+  datetimenow.second = 5;
 
   rtc.setYear(datetimenow.year);
   rtc.setMonth(datetimenow.month);
@@ -123,10 +123,17 @@ void setup() {
   alarmPM = false;    
   
 //  rtc.checkIfAlarm(1);
-  rtc.turnOffAlarm(1);
-  rtc.setA1Time(10, 7, 10, 0, alarmBits, false, false, false);
-  rtc.turnOnAlarm(1);
-  rtc.checkIfAlarm(1);
+  // rtc.turnOffAlarm(1);
+  // rtc.setA1Time(10, 7, 10, 0, alarmBits, false, false, false);
+  // rtc.turnOnAlarm(1);
+  // rtc.checkIfAlarm(1);
+  if (is_day(datetimenow, night2day, day2night)){
+    day = true;
+    set_clock(day2night);
+  } else {
+    day = false;
+    set_clock(night2day);
+  }
 
 //  alarmMinute = 0xFF; // a value that will never match the time
   alarmBits = 0b01100000; // Alarm 2 when minutes match, i.e., never
@@ -139,8 +146,6 @@ void setup() {
 //  sleep_cpu();
   pinMode(LED_PIN, OUTPUT);
   LED_state = true;
-
-  day = false;
 
   // set up transmit
   sendSwitch.enableTransmit(RC_PIN_TX);
@@ -256,11 +261,12 @@ void loop() {
     // clear alarm state
     
 //    rtc.checkIfAlarm(1, true);
-    alarmBits = 0b00001000;
-    rtc.turnOffAlarm(1);
+    // alarmBits = 0b00001000;
+    // rtc.turnOffAlarm(1);
     if (day){
       // it is now night, set the timer for the next morning
-      rtc.setA1Time(10, 7, 10, 0, alarmBits, false, false, false);
+      // rtc.setA1Time(10, 7, 10, 0, alarmBits, false, false, false);
+      set_clock(night2day);
       // sendSwitch.send(codes[out5on], 24);
       // Serial.println("Sent 5 ON code");
       // sendSwitch.send(codes[out4off], 24);
@@ -268,7 +274,8 @@ void loop() {
       day = false;
     } else {
       // it is now day, set the timer for the evening
-      rtc.setA1Time(10, 20, 10, 0, alarmBits, false, false, false);
+      // rtc.setA1Time(10, 20, 10, 0, alarmBits, false, false, false);
+      set_clock(day2night);
       // sendSwitch.send(codes[out4on], 24);
       // Serial.println("Sent 4 ON code");
       // sendSwitch.send(codes[out5off], 24);
@@ -276,8 +283,8 @@ void loop() {
       day = true;
     }
     // rtc.setA1Time(curr_day, curr_hour, curr_minute, curr_sec+11, alarmBits, false, false, false);
-    rtc.turnOnAlarm(1);
-    rtc.checkIfAlarm(1);
+    // rtc.turnOnAlarm(1);
+    // rtc.checkIfAlarm(1);
     
     tick = 0; // do this at the end in case the turning off and on causes any interferance
   }
@@ -304,4 +311,29 @@ void set_clock(mydatetime obj){
 
   rtc.turnOnAlarm(1);
   rtc.checkIfAlarm(1);
+}
+
+bool is_day(mydatetime obj, mydatetime day, mydatetime night){
+  // checks if the date/time given by the input is in the day or night
+  if (obj.hour != night.hour && obj.hour != day.hour){
+    if (obj.hour < day.hour || obj.hour > night.hour){
+      return false;
+    } else {
+      return true;
+    }
+  } else {
+    if (obj.hour == night.hour) {
+      if (obj.minute > night.minute){
+        return false;
+      } else {
+        return true;
+      }
+    } else {
+      if (obj.minute < day.minute) {
+        return false;
+      } else {
+        return true;
+      }
+    }
+  }
 }
