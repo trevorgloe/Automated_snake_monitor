@@ -16,6 +16,20 @@ Author: Trevor Loe
 
 #include <RCSwitch.h>
 
+#include <AM2302-Sensor.h>
+#define HOTPIN 8
+#define COLDPIN 6
+
+// define temperature sensors
+AM2302::AM2302_Sensor hot{HOTPIN};
+AM2302::AM2302_Sensor cold{COLDPIN};
+
+// define the control temperatures
+float temp_hi = 80;     // the temperature at which it will turn off the light
+float temp_err = 90;    // the temperature at which the device will go into an error state
+
+bool error;
+
 #define CLINT 2
 volatile bool tick = 0;
 
@@ -128,8 +142,10 @@ void setup() {
   // attach clock interrupt
   pinMode(CLINT, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(CLINT), isr_TickTock, FALLING);
+
+  // warning LED
   pinMode(LED_PIN, OUTPUT);
-  LED_state = true;
+  LED_state = false;
 
   // set up transmit
   sendSwitch.enableTransmit(RC_PIN_TX);
@@ -139,11 +155,18 @@ void setup() {
   // turn off both switchs to start
   sendSwitch.send(codes[out4off], 24);
   sendSwitch.send(codes[out5off], 24);
+
+  // temperature sensors
+  hot.begin();
+  cold.begin();
+
+  // set the error state flag
+  error = false;
 }
 
 
 void loop() {
-  delay(30000);
+  delay(30000); //wait 30 seconds
   // check for serial port
   if (Serial && !serialport){
     Serial.begin(9600);
@@ -151,8 +174,28 @@ void loop() {
     Serial.print("Started serial port");
   }
 
+  // read temperature and humidity sensors
+  auto hotstatus = hot.read();
+  auto coldstatus = cold.read();
+  float hot_temp = hot.get_Temperature() * 9.0 / 5.0 + 32.0; // convert to ferenheit
+  float cold_temp = cold.get_Temperature() * 9.0 / 5.0 + 32.0; // convert to ferenheit
+  float hot_hum = hot.get_Humidity();
+  float cold_hum = hot.get_Humidity();
+
+  bool valid_read = false;
+  // check for certain errors
+  if (hotstatus == 0 && coldstatus == 0){
+    // check for if we should be going into an error state
+    if (hot_temp > temp_err || cold_temp > temp_err){
+      // the read is valid and the temperature is actually this high, go into an error state
+      error = true;
+    }
+  } else {
+    valid_read = false;
+  }
+
   if (day){
-    lcd.backlight();
+    lcd.backlight(); // we only want the display on during the day, when I would actually be looking 
   }
   int curr_year = rtc.getYear();
   int curr_month = rtc.getMonth(century);
@@ -180,14 +223,30 @@ void loop() {
 
     Serial.print("day: ");
     Serial.println(day);
+
+    Serial.print("\n\nstatus of hot sensor read(): ");
+    Serial.println(AM2302::AM2302_Sensor::get_sensorState(hotstatus));
+
+    Serial.print("\n\nstatus of cold sensor read(): ");
+    Serial.println(AM2302::AM2302_Sensor::get_sensorState(coldstatus));
+
+    Serial.print("Hot side: Temp: ");
+    Serial.print(hot_temp);
+    Serial.print(" Humidity: ");
+    Serial.println(hot_hum);
+
+    Serial.print("Cold side: Temp: ");
+    Serial.print(cold_temp);
+    Serial.print(" Humidity: ");
+    Serial.println(cold_hum);
   }
   
-  LED_state = !LED_state;
-  digitalWrite(LED_PIN, LED_state);
    // print stuff onto LCD display
   lcd.setCursor(0,0);
   // tell the screen to write “hello, from” on the top  row
   // lcd.print("Year:");
+
+  // print date and time
   lcd.print(curr_year);
   lcd.print("-");
   lcd.print(curr_month);
@@ -199,76 +258,66 @@ void loop() {
   lcd.print(curr_minute);
   lcd.print("-");
   lcd.print(curr_sec);
+  // print where its night or day
+  lcd.print(" day:");
+  lcd.print(day);
+  lcd.print("      ");
+
   lcd.setCursor(0,1);
-  // lcd.print(rtc.getDate());
-  // lcd.print(" Hour:");
-  // lcd.print(rtc.getHour(h12Flag, pmFlag));
-  // lcd.setCursor(0,2);
-  // lcd.print("Minute:");
-  // lcd.print(rtc.getMinute());
-  // lcd.print(" Second:");
-  // lcd.print(rtc.getSecond());
-  lcd.print("Day: ");
-  if (day){
-    lcd.print("true ");
-  } else {
-    lcd.print("false");
-  }
-  lcd.print("Ser: ");
-  if (serialport){
-    lcd.print("true");
-  } else {
-    lcd.print("false");
-  }
-  delay(5000);
+  //print hot side environmental information
+  lcd.print("Hot: ");
+  lcd.print(hot_temp);
+  lcd.print("F ");
+  lcd.print(hot_hum);
+  lcd.print("%       ");
+  //print cold side environmental information
+  lcd.print("Cold: ");
+  lcd.print(cold_temp);
+  lcd.print("F ");
+  lcd.print(cold_hum);
+  lcd.print("%       ");
+
+  delay(5000); // display LCD stuff for only 5 seconds
   lcd.noBacklight();
-//  LowPower.deepSleep(2000);
-  if (day) {
-    sendSwitch.send(codes[out5on], 24);
-    
+  // first check that we are not in an error state
+  if (error) {
+    Serial.print("ERROR");
+    digitalWrite(LED_PIN, true);
+    // turn off both lights
     sendSwitch.send(codes[out4off], 24);
-    if (serialport) {
-      Serial.println("Sent 5 ON code");
-      Serial.println("Sent 4 OFF code");
-    }
-    
-  } else {
-    sendSwitch.send(codes[out4on], 24);
     sendSwitch.send(codes[out5off], 24);
-    if (serialport){
-      Serial.println("Sent 4 ON code");
-      Serial.println("Sent 5 OFF code");
+  } else {
+    // set the correct day/night lights on based on the value of the 'day' variable
+    if (day) {
+      sendSwitch.send(codes[out5on], 24);
+      sendSwitch.send(codes[out4off], 24);
+      if (serialport) {
+        Serial.println("Sent 5 ON code");
+        Serial.println("Sent 4 OFF code");
+      }
+      
+    } else {
+      sendSwitch.send(codes[out4on], 24);
+      sendSwitch.send(codes[out5off], 24);
+      if (serialport){
+        Serial.println("Sent 4 ON code");
+        Serial.println("Sent 5 OFF code");
+      }
     }
   }
+  
   if (tick==1) {
-    Serial.print("Alarm triggered");
-    // clear alarm state
-    
-//    rtc.checkIfAlarm(1, true);
-    // alarmBits = 0b00001000;
-    // rtc.turnOffAlarm(1);
+    // the alarm was triggered
+    Serial.println("Alarm triggered");
     if (day){
       // it is now night, set the timer for the next morning
-      // rtc.setA1Time(10, 7, 10, 0, alarmBits, false, false, false);
       set_clock(night2day);
-      // sendSwitch.send(codes[out5on], 24);
-      // Serial.println("Sent 5 ON code");
-      // sendSwitch.send(codes[out4off], 24);
-      // Serial.println("Sent 4 OFF code");
       day = false;
     } else {
       // it is now day, set the timer for the evening
-      // rtc.setA1Time(10, 20, 10, 0, alarmBits, false, false, false);
       set_clock(day2night);
-      // sendSwitch.send(codes[out4on], 24);
-      // Serial.println("Sent 4 ON code");
-      // sendSwitch.send(codes[out5off], 24);
-      // Serial.println("Sent 5 OFF code");
       day = true;
     }
-    // rtc.setA1Time(curr_day, curr_hour, curr_minute, curr_sec+11, alarmBits, false, false, false);
-    // rtc.turnOnAlarm(1);
-    // rtc.checkIfAlarm(1);
     
     tick = 0; // do this at the end in case the turning off and on causes any interferance
   }
@@ -283,6 +332,7 @@ void isr_TickTock() {
 
 void set_clock(mydatetime obj){
   // function to set the alarm 1 for the RTC
+  // the alarm will be set to go off at the input hour, minute and second
   alarmBits = 0b00001000; // alarm will trip when date and time match
   rtc.turnOffAlarm(1);
 
@@ -299,6 +349,7 @@ void set_clock(mydatetime obj){
 
 bool is_day(mydatetime obj, mydatetime day, mydatetime night){
   // checks if the date/time given by the input is in the day or night
+  // returns true if the input time is day, false otherwise
   if (obj.hour != night.hour && obj.hour != day.hour){
     if (obj.hour < day.hour || obj.hour > night.hour){
       return false;
