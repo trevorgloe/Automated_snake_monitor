@@ -30,6 +30,11 @@ float temp_err = 90;    // the temperature at which the device will go into an e
 
 bool error;
 
+int numInvaldRead = 0;  // number of consecutive invalid reads
+
+bool hotLightOn = false;
+bool coldLightOn = false;
+
 #define CLINT 2
 volatile bool tick = 0;
 
@@ -190,8 +195,16 @@ void loop() {
       // the read is valid and the temperature is actually this high, go into an error state
       error = true;
     }
+    valid_read = true;
+    numInvaldRead = 0;
   } else {
     valid_read = false;
+    numInvaldRead++;
+  }
+
+  // if we get 5 invalid reads in a row, go into error state
+  if (numInvaldRead>5){
+    error = true;
   }
 
   if (day){
@@ -263,19 +276,35 @@ void loop() {
   lcd.print(day);
   lcd.print("      ");
 
-  lcd.setCursor(0,1);
-  //print hot side environmental information
-  lcd.print("Hot: ");
-  lcd.print(hot_temp);
-  lcd.print("F ");
-  lcd.print(hot_hum);
-  lcd.print("%       ");
-  //print cold side environmental information
-  lcd.print("Cold: ");
-  lcd.print(cold_temp);
-  lcd.print("F ");
-  lcd.print(cold_hum);
-  lcd.print("%       ");
+  // only update the display if there is a valid read
+  if (valid_read){
+    lcd.setCursor(0,1);
+    //print hot side environmental information
+    lcd.print("Hot: ");
+    lcd.print(hot_temp);
+    lcd.print("F ");
+    lcd.print(hot_hum);
+    lcd.print("%       ");
+    //print cold side environmental information
+    lcd.print("Cold: ");
+    lcd.print(cold_temp);
+    lcd.print("F ");
+    lcd.print(cold_hum);
+    lcd.print("%       ");
+  }
+
+  // print information about which lights on on
+  lcd.setCursor(0,2);
+  lcd.print("Hot:");
+  lcd.print(hotLightOn);
+  lcd.print(" Cold:");
+  lcd.print(coldLightOn);
+
+  if (error){
+      // show error message on LCD
+    lcd.setCursor(0,0);
+    lcd.print("ERROR");
+  }
 
   delay(5000); // display LCD stuff for only 5 seconds
   lcd.noBacklight();
@@ -286,23 +315,32 @@ void loop() {
     // turn off both lights
     sendSwitch.send(codes[out4off], 24);
     sendSwitch.send(codes[out5off], 24);
+    hotLightOn = false;
+    coldLightOn = false;
   } else {
     // set the correct day/night lights on based on the value of the 'day' variable
-    if (day) {
-      sendSwitch.send(codes[out5on], 24);
-      sendSwitch.send(codes[out4off], 24);
-      if (serialport) {
-        Serial.println("Sent 5 ON code");
-        Serial.println("Sent 4 OFF code");
-      }
+    // if (day) {
+    //   sendSwitch.send(codes[out5on], 24);
+    //   hotLightOn = true;
+    //   sendSwitch.send(codes[out4off], 24);
+    //   coldLightOn = false;
+    //   if (serialport) {
+    //     Serial.println("Sent 5 ON code");
+    //     Serial.println("Sent 4 OFF code");
+    //   }
       
-    } else {
-      sendSwitch.send(codes[out4on], 24);
-      sendSwitch.send(codes[out5off], 24);
-      if (serialport){
-        Serial.println("Sent 4 ON code");
-        Serial.println("Sent 5 OFF code");
-      }
+    // } else {
+    //   sendSwitch.send(codes[out4on], 24);
+    //   coldLightOn = true;
+    //   sendSwitch.send(codes[out5off], 24);
+    //   hotLightOn = false;
+    //   if (serialport){
+    //     Serial.println("Sent 4 ON code");
+    //     Serial.println("Sent 5 OFF code");
+    //   }
+    // }
+    if (valid_read){
+      set_lights(day, temp_hi, hot_temp, cold_temp);
     }
   }
   
@@ -369,6 +407,43 @@ bool is_day(mydatetime obj, mydatetime day, mydatetime night){
       } else {
         return true;
       }
+    }
+  }
+}
+
+void set_lights(bool day, float temp_hi, float hot_temp, float cold_temp){
+  // this will turn the lights on or off depending on the value of day and the values of the two temperatures of each side of the cage
+  if (day) {
+    // daytime so we care about controlling the hot side lamp
+    sendSwitch.send(codes[out4off], 24);
+    coldLightOn = false;
+    // check if temperature is above temp_hi threshold
+    if (hot_temp > temp_hi){
+      sendSwitch.send(codes[out5on], 24);
+      hotLightOn = true;
+    } else {
+      sendSwitch.send(codes[out5off], 24);
+      hotLightOn = false;
+    }
+    if (serialport) {
+      Serial.println("Sent 5 ON code");
+      Serial.println("Sent 4 OFF code");
+    }
+  } else {
+    // night time so we only care about controlling the night lamp
+    sendSwitch.send(codes[out5off], 24);
+    hotLightOn = false;
+    // check if temperature is above temp_hi threshold
+    if (cold_temp > temp_hi){
+      sendSwitch.send(codes[out4on], 24);
+      coldLightOn = true;
+    } else {
+      sendSwitch.send(codes[out4off], 24);
+      coldLightOn = false;
+    }
+    if (serialport){
+      Serial.println("Sent 4 ON code");
+      Serial.println("Sent 5 OFF code");
     }
   }
 }
