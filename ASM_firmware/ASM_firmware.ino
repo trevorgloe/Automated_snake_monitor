@@ -116,10 +116,10 @@ void setup() {
   // set the current date and time
   datetimenow.year = 24;
   datetimenow.month = 6;
-  datetimenow.day = 2;
-  datetimenow.hour = 16;
-  datetimenow.minute = 41;
-  datetimenow.second = 9;
+  datetimenow.day = 10;
+  datetimenow.hour = 21;
+  datetimenow.minute = 47;
+  datetimenow.second = 20;
 
   rtc.setYear(datetimenow.year);
   rtc.setMonth(datetimenow.month);
@@ -167,6 +167,9 @@ void setup() {
 
   // set the error state flag
   error = false;
+
+  // go through testing proceedure to make sure hardware is all working
+  test_features();
 }
 
 
@@ -457,4 +460,47 @@ void set_lights(bool day, float temp_hi, float hot_temp, float cold_temp){
     //   Serial.println("Sent 5 OFF code");
     // }
   }
+}
+
+void test_features() {
+  // function to go through a testing procedure and make sure all the hardware is working
+  lcd.setCursor(0,0);
+  lcd.backlight();
+  lcd.print("Testing lights switching");
+  delay(1000);
+  // test lights
+  lcd.setCursor(0,0);
+  lcd.print("Turning lights off");
+  sendSwitch.send(codes[out4off], 24);
+  sendSwitch.send(codes[out5off], 24);
+  delay(1000);
+  lcd.setCursor(0,0);
+  lcd.print("Turning lights on");
+  sendSwitch.send(codes[out4on], 24);
+  sendSwitch.send(codes[out5on], 24);
+  delay(1000);
+
+  // test LED
+  lcd.setCursor(0,0);
+  lcd.print("Flipping LED");
+  digitalWrite(LED_PIN, false);
+  delay(400);
+  digitalWrite(LED_PIN, true);
+  delay(400);
+  digitalWrite(LED_PIN, false);
+  delay(400);
+  digitalWrite(LED_PIN, true);
+  delay(400);
+  digitalWrite(LED_PIN, false);
+  
+  // test temp sensors
+  lcd.setCursor(0,0);
+  lcd.print("Checking temperature sensors");
+  delay(1000);
+  auto hotstatus = hot.read();
+  auto coldstatus = cold.read();
+  lcd.setCursor(0,0);
+  lcd.print(hotstatus);
+  lcd.setCursor(0,1);
+  lcd.print(coldstatus);
 }
