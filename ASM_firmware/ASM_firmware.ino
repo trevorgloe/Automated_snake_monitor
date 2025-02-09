@@ -64,6 +64,7 @@ struct mydatetime {
   int second;
 };
 mydatetime datetimenow;
+mydatetime currdatetime;
 
 mydatetime day2night = {24, 5, 10, 20, 15, 0};  // when the light should switch from day to night
 mydatetime night2day = {24, 5, 10, 7, 10, 0};   // when the light should switch from night to day
@@ -114,12 +115,12 @@ void setup() {
   Wire.begin();
 
   // set the current date and time
-  datetimenow.year = 24;
-  datetimenow.month = 6;
-  datetimenow.day = 10;
-  datetimenow.hour = 21;
-  datetimenow.minute = 47;
-  datetimenow.second = 20;
+  datetimenow.year = 25;
+  datetimenow.month = 2;
+  datetimenow.day = 7;
+  datetimenow.hour = 7;
+  datetimenow.minute = 33;
+  datetimenow.second = 10;
 
   rtc.setYear(datetimenow.year);
   rtc.setMonth(datetimenow.month);
@@ -219,6 +220,12 @@ void loop() {
   int curr_hour = rtc.getHour(h12Flag, pmFlag);
   int curr_minute = rtc.getMinute();
   int curr_sec = rtc.getSecond();
+  currdatetime.year = curr_year;
+  currdatetime.month = curr_month;
+  currdatetime.day = curr_day;
+  currdatetime.hour = curr_hour;
+  currdatetime.minute = curr_minute;
+  currdatetime.second = curr_sec;
   if (serialport) {
     Serial.print(curr_year, DEC);
     Serial.print("-");
@@ -355,13 +362,20 @@ void loop() {
     // the alarm was triggered
     Serial.println("Alarm triggered");
     if (day){
-      // it is now night, set the timer for the next morning
-      set_clock(night2day);
-      day = false;
+      // double check that it is actually night now and the alarm wasn't mistriggered
+//      if (!is_day(currdatetime, night2day, day2night)){ temporarily removed cause it wasn't working right
+        // it is actually night now, so adjust timer and variable
+        // it is now night, set the timer for the next morning
+        set_clock(night2day);
+        day = false;
+//      }
     } else {
-      // it is now day, set the timer for the evening
-      set_clock(day2night);
-      day = true;
+      // double check that it is actually day now and the alarm wasn't mistriggered
+      if (is_day(currdatetime, night2day, day2night)){
+        // it is now day, set the timer for the evening
+        set_clock(day2night);
+        day = true;
+      }
     }
     
     tick = 0; // do this at the end in case the turning off and on causes any interferance
