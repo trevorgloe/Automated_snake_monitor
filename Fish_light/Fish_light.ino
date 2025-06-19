@@ -34,6 +34,7 @@ struct mydatetime {
   int second;
 };
 mydatetime datetimenow;
+mydatetime currdatetime;
 
 mydatetime day2night = {24, 5, 10, 20, 15, 0};  // when the light should switch from day to night
 mydatetime night2day = {24, 5, 10, 7, 10, 0};   // when the light should switch from night to day
@@ -59,12 +60,19 @@ enum code_idx{
   out5on,
   out5off
 };
-// day light is switch 4, night light is switch 5
+// Fish light is set to switch 3
 
 RCSwitch sendSwitch = RCSwitch();
   
-
+void setup() {
   Wire.begin();
+  Serial.begin(9600);
+  Serial.println("Starting program!");
+
+  // Turn pin 13 to be hot perminently, have to do this because the 5V header on the board is busted so we'll just use the digital output as our power
+  // Its dumb, I know, but I didn't feel like getting a new board or fixing the header
+  pinMode(13, OUTPUT);
+  digitalWrite(13, true);
 
   // set the current date and time
   datetimenow.year = 24;
@@ -104,17 +112,21 @@ RCSwitch sendSwitch = RCSwitch();
 
 
 void loop() {
-  delay(30000);
+  digitalWrite(13, true);
+  delay(3000);
 
-  if (day){
-    lcd.backlight();
-  }
   int curr_year = rtc.getYear();
   int curr_month = rtc.getMonth(century);
   int curr_day = rtc.getDate();
   int curr_hour = rtc.getHour(h12Flag, pmFlag);
   int curr_minute = rtc.getMinute();
   int curr_sec = rtc.getSecond();
+  currdatetime.year = curr_year;
+  currdatetime.month = curr_month;
+  currdatetime.day = curr_day;
+  currdatetime.hour = curr_hour;
+  currdatetime.minute = curr_minute;
+  currdatetime.second = curr_sec;
   Serial.print(curr_year, DEC);
   Serial.print("-");
     
@@ -141,7 +153,6 @@ void loop() {
 
   if (day) {
     sendSwitch.send(codes[out3on], 24);
-    
     Serial.println("Sent 3 ON code");
   } else {
     sendSwitch.send(codes[out3off], 24);
@@ -168,7 +179,7 @@ void loop() {
         day = true;
       } else {
         // it is actually night, dont really do anything 
-        Serial.print("no time change required");
+        Serial.print("no time change required\n");
       }
     }
 
