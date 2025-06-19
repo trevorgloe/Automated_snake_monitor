@@ -12,17 +12,9 @@ Author: Trevor Loe
 #include <DS3231.h>
 #include <Wire.h>
 #include <time.h>
-#include <LiquidCrystal_I2C.h>
 
 #include <RCSwitch.h>
 
-#include <AM2302-Sensor.h>
-#define HOTPIN 8
-#define COLDPIN 6
-
-// define temperature sensors
-AM2302::AM2302_Sensor hot{HOTPIN};
-AM2302::AM2302_Sensor cold{COLDPIN};
 
 // define the control temperatures
 float temp_hi = 80;     // the temperature at which it will turn off the light
@@ -94,12 +86,6 @@ enum code_idx{
 
 RCSwitch sendSwitch = RCSwitch();
 
-//initialize the liquid crystal library
-//the first parameter is  the I2C address
-//the second parameter is how many rows are on your screen
-//the  third parameter is how many columns are on your screen
-LiquidCrystal_I2C lcd(0x27,  16, 4);
-
 // flag for a serial port being plugged in
 bool serialport;
 
@@ -110,8 +96,9 @@ void setup() {
   } else {
     serialport = false;
   }
-  
 
+
+void setup() {
   Wire.begin();
 
   // set the current date and time
