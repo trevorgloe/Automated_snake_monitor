@@ -116,11 +116,11 @@ void setup() {
 
   // set the current date and time
   datetimenow.year = 25;
-  datetimenow.month = 2;
-  datetimenow.day = 7;
-  datetimenow.hour = 7;
-  datetimenow.minute = 33;
-  datetimenow.second = 10;
+  datetimenow.month = 6;
+  datetimenow.day = 10;
+  datetimenow.hour = 12;
+  datetimenow.minute = 52;
+  datetimenow.second = 50;
 
   rtc.setYear(datetimenow.year);
   rtc.setMonth(datetimenow.month);
@@ -358,28 +358,51 @@ void loop() {
     }
   }
   
-  if (tick==1) {
-    // the alarm was triggered
-    Serial.println("Alarm triggered");
-    if (day){
-      // double check that it is actually night now and the alarm wasn't mistriggered
-//      if (!is_day(currdatetime, night2day, day2night)){ temporarily removed cause it wasn't working right
-        // it is actually night now, so adjust timer and variable
-        // it is now night, set the timer for the next morning
-        set_clock(night2day);
-        day = false;
-//      }
+ // if (tick==1) {
+ //   // the alarm was triggered
+ //   Serial.println("Alarm triggered");
+ //   if (day){
+ //     // double check that it is actually night now and the alarm wasn't mistriggered
+////      if (!is_day(currdatetime, night2day, day2night)){ temporarily removed cause it wasn't working right
+ //       // it is actually night now, so adjust timer and variable
+ //       // it is now night, set the timer for the next morning
+ //       set_clock(night2day);
+ //       day = false;
+////      }
+ //   } else {
+ //     // double check that it is actually day now and the alarm wasn't mistriggered
+ //     if (is_day(currdatetime, night2day, day2night)){
+ //       // it is now day, set the timer for the evening
+ //       set_clock(day2night);
+ //       day = true;
+ //     }
+ //   }
+ //   
+ //   tick = 0; // do this at the end in case the turning off and on causes any interferance
+ // }
+  /*  Lets try a different method for switching the day and night, without interupts */
+  if (day) {
+  	// it is currently day, so check if the clock says its night
+    if (is_day(currdatetime, night2day, day2night)){
+      // it is actually day, dont really do anything
+      Serial.print("no time change required");
     } else {
-      // double check that it is actually day now and the alarm wasn't mistriggered
+      // it is not actually day, according to the clock 
+      set_clock(night2day);
+      day = false;
+    }
+
+    } else {
+    // it is currently night, so check if the clock says its day
       if (is_day(currdatetime, night2day, day2night)){
-        // it is now day, set the timer for the evening
+        // it is actually day, according to the clock
         set_clock(day2night);
         day = true;
+      } else {
+        // it is actually night, dont really do anything 
+        Serial.print("no time change required");
       }
     }
-    
-    tick = 0; // do this at the end in case the turning off and on causes any interferance
-  }
   lcd.clear();
 
 }
