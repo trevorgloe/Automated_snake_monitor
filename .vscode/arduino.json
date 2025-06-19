@@ -1,4 +1,4 @@
 {
-    "port": "/dev/ttyACM0",
+    "port": "/dev/ttyS0",
     "board": "arduinoUno"
 }
