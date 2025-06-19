@@ -8,9 +8,6 @@
 
 #include <RCSwitch.h>
 
-#define CLINT 2
-volatile bool tick = 0;
-
 #define LED_PIN 10
 
 #define RC_PIN_TX A0
@@ -108,12 +105,6 @@ RCSwitch sendSwitch = RCSwitch();
 
 void loop() {
   delay(30000);
-  // check for serial port
-  if (Serial && !serialport){
-    Serial.begin(9600);
-    serialport = true;
-    Serial.print("Started serial port");
-  }
 
   if (day){
     lcd.backlight();
@@ -124,126 +115,65 @@ void loop() {
   int curr_hour = rtc.getHour(h12Flag, pmFlag);
   int curr_minute = rtc.getMinute();
   int curr_sec = rtc.getSecond();
-  if (serialport) {
-    Serial.print(curr_year, DEC);
-    Serial.print("-");
+  Serial.print(curr_year, DEC);
+  Serial.print("-");
     
-    Serial.print(curr_month, DEC);
-    Serial.print("-");
+  Serial.print(curr_month, DEC);
+  Serial.print("-");
     
-    Serial.print(curr_day, DEC);
-    Serial.print(" ");
+  Serial.print(curr_day, DEC);
+  Serial.print(" ");
     
-    Serial.print(curr_hour, DEC); //24-hr
-    Serial.print(":");
+  Serial.print(curr_hour, DEC); //24-hr
+  Serial.print(":");
     
-    Serial.print(curr_minute, DEC);
-    Serial.print(":");
+  Serial.print(curr_minute, DEC);
+  Serial.print(":");
     
-    Serial.println(curr_sec, DEC);
+  Serial.println(curr_sec, DEC);
 
-    Serial.print("day: ");
-    Serial.println(day);
-  }
+  Serial.print("day: ");
+  Serial.println(day);
   
   LED_state = !LED_state;
   digitalWrite(LED_PIN, LED_state);
-   // print stuff onto LCD display
-  lcd.setCursor(0,0);
-  // tell the screen to write “hello, from” on the top  row
-  // lcd.print("Year:");
-  lcd.print(curr_year);
-  lcd.print("-");
-  lcd.print(curr_month);
-  lcd.print("-");
-  lcd.print(curr_day);
-  lcd.print(" ");
-  lcd.print(curr_hour);
-  lcd.print("-");
-  lcd.print(curr_minute);
-  lcd.print("-");
-  lcd.print(curr_sec);
-  lcd.setCursor(0,1);
-  // lcd.print(rtc.getDate());
-  // lcd.print(" Hour:");
-  // lcd.print(rtc.getHour(h12Flag, pmFlag));
-  // lcd.setCursor(0,2);
-  // lcd.print("Minute:");
-  // lcd.print(rtc.getMinute());
-  // lcd.print(" Second:");
-  // lcd.print(rtc.getSecond());
-  lcd.print("Day: ");
-  if (day){
-    lcd.print("true ");
-  } else {
-    lcd.print("false");
-  }
-  lcd.print("Ser: ");
-  if (serialport){
-    lcd.print("true");
-  } else {
-    lcd.print("false");
-  }
-  delay(5000);
-  lcd.noBacklight();
-//  LowPower.deepSleep(2000);
+  
+
   if (day) {
-    sendSwitch.send(codes[out5on], 24);
+    sendSwitch.send(codes[out3on], 24);
     
-    sendSwitch.send(codes[out4off], 24);
-    if (serialport) {
-      Serial.println("Sent 5 ON code");
-      Serial.println("Sent 4 OFF code");
-    }
-    
+    Serial.println("Sent 3 ON code");
   } else {
-    sendSwitch.send(codes[out4on], 24);
-    sendSwitch.send(codes[out5off], 24);
-    if (serialport){
-      Serial.println("Sent 4 ON code");
-      Serial.println("Sent 5 OFF code");
-    }
+    sendSwitch.send(codes[out3off], 24);
+    Serial.println("Sent 3 OFF code");
   }
-  if (tick==1) {
-    Serial.print("Alarm triggered");
-    // clear alarm state
-    
-//    rtc.checkIfAlarm(1, true);
-    // alarmBits = 0b00001000;
-    // rtc.turnOffAlarm(1);
-    if (day){
-      // it is now night, set the timer for the next morning
-      // rtc.setA1Time(10, 7, 10, 0, alarmBits, false, false, false);
-      set_clock(night2day);
-      // sendSwitch.send(codes[out5on], 24);
-      // Serial.println("Sent 5 ON code");
-      // sendSwitch.send(codes[out4off], 24);
-      // Serial.println("Sent 4 OFF code");
-      day = false;
+
+  // Set the day variable based on the current readings from the RTC
+  if (day) {
+    // it is currently day, so check if the clock says its night
+    if (is_day(currdatetime, night2day, day2night)){
+      // it is actually day, dont really do anything
+      Serial.print("no time change required");
     } else {
-      // it is now day, set the timer for the evening
-      // rtc.setA1Time(10, 20, 10, 0, alarmBits, false, false, false);
-      set_clock(day2night);
-      // sendSwitch.send(codes[out4on], 24);
-      // Serial.println("Sent 4 ON code");
-      // sendSwitch.send(codes[out5off], 24);
-      // Serial.println("Sent 5 OFF code");
-      day = true;
+      // it is not actually day, according to the clock 
+      set_clock(night2day);
+      day = false;
     }
-    // rtc.setA1Time(curr_day, curr_hour, curr_minute, curr_sec+11, alarmBits, false, false, false);
-    // rtc.turnOnAlarm(1);
-    // rtc.checkIfAlarm(1);
-    
-    tick = 0; // do this at the end in case the turning off and on causes any interferance
-  }
+
+    } else {
+    // it is currently night, so check if the clock says its day
+      if (is_day(currdatetime, night2day, day2night)){
+        // it is actually day, according to the clock
+        set_clock(day2night);
+        day = true;
+      } else {
+        // it is actually night, dont really do anything 
+        Serial.print("no time change required");
+      }
+    }
 
 }
 //
-void isr_TickTock() {
-    // interrupt signals to loop
-    tick = 1;
-    return;
-}
 
 void set_clock(mydatetime obj){
   // function to set the alarm 1 for the RTC
