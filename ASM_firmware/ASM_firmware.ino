@@ -115,12 +115,12 @@ void setup() {
   Wire.begin();
 
   // set the current date and time
-  datetimenow.year = 25;
-  datetimenow.month = 6;
-  datetimenow.day = 10;
-  datetimenow.hour = 12;
-  datetimenow.minute = 52;
-  datetimenow.second = 50;
+  datetimenow.year = 26;
+  datetimenow.month = 1;
+  datetimenow.day = 8;
+  datetimenow.hour = 20;
+  datetimenow.minute = 14;
+  datetimenow.second = 20;
 
   rtc.setYear(datetimenow.year);
   rtc.setMonth(datetimenow.month);
